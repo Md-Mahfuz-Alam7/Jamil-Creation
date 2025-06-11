@@ -8,6 +8,8 @@ const Button = ({
   disabled = false, 
   type = 'button',
   className = '',
+  icon: Icon = null,
+  iconPosition = 'left',
   ...props 
 }) => {
   const baseClasses = 'font-bold rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 flex items-center justify-center';
@@ -34,7 +36,9 @@ const Button = ({
       className={buttonClasses}
       {...props}
     >
+      {Icon && iconPosition === 'left' && <Icon className="w-6 h-6 mr-2" />}
       {children}
+      {Icon && iconPosition === 'right' && <Icon className="w-5 h-6 ml-2" />}
     </button>
   );
 };

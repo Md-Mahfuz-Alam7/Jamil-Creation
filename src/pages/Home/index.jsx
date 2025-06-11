@@ -1,61 +1,79 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import Button from '../../components/ui/Button';
+import { AiFillAndroid, AiFillApple } from "react-icons/ai";
+import { FaFileInvoice, FaDatabase, FaFileDownload } from "react-icons/fa";
+import Footer from '../../components/common/Footer';
 
 const Home = () => {
+
+  const cards = [
+    {
+      icon: FaFileInvoice,
+      title: "Easy Invoice Creation",
+      description: "Easily generate & manage invoices for your purchases"
+    },
+    {
+      icon: FaDatabase,
+      title: "Data Storage",
+      description: "Securely store your invoice data & get use them"
+    },
+    {
+      icon: FaFileDownload,
+      title: "One Click Download",
+      description: "Download all your invoice data in one click in an Excel sheet"
+    },
+  ];
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <div className="relative bg-gradient-to-b from-[#EEF2FF] to-white">
+      {/* bg-gradient-to-b from-[#EEF2FF] to-white */}
+      <div className="relative bg-white">
         <div className="container mx-auto px-4 lg:px-6 pt-20 pb-16">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="max-w-xl">
-              <h1 className="text-4xl lg:text-5xl font-bold text-gray-900 leading-tight mb-6">
-                Create Professional Invoices in Minutes
+              <h1 className="text-4xl lg:text-5xl font-bold text-gray-900 leading-tight mb-6 center">
+                Discover The Essence Of Tradition
               </h1>
               <p className="text-lg text-gray-600 mb-8 leading-relaxed">
-                Generate, customize, and send professional invoices instantly. Perfect for freelancers, small businesses, and enterprises.
+                A custom web app for Jamil Creation. With Creating invoice and download the chat app.
+              </p>
+              <p className="text-1xl lg:text-2xl font-bold text-gray-900 leading-tight mb-6">
+                Download The App From Here
               </p>
               <div className="flex flex-wrap gap-4">
-                <Link to="/create-invoice">
-                  <Button 
-                    variant="primary" 
+                <Link to="/download">
+                  <Button
+                    variant="secondary"
                     size="large"
-                    className="px-8 py-4 bg-[#4F46E5] hover:bg-[#4338CA] text-white"
+                    icon={AiFillApple}
+                    className="px-8 py-4 bg-[#d4a373] text-white hover:bg-[#ce9155]"
                   >
-                    Get Started - It's Free
+                    For IOS
                   </Button>
                 </Link>
-                <Link to="/signup">
-                  <Button 
-                    variant="secondary" 
+                <Link to="/download">
+                  <Button
+                    variant="primary"
                     size="large"
-                    className="px-8 py-4 border-2 border-[#4F46E5] text-[#4F46E5] hover:bg-[#EEF2FF]"
+                    icon={AiFillAndroid}
+                    className="px-8 py-4 bg-[#d4a373] hover:bg-[#ce9155] text-white"
                   >
-                    Learn More
+                    For Android
                   </Button>
                 </Link>
               </div>
-              <div className="mt-8 flex items-center gap-4">
-                <div className="flex -space-x-2">
-                  {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className="w-8 h-8 rounded-full border-2 border-white bg-gray-200"></div>
-                  ))}
-                </div>
-                <p className="text-sm text-gray-600">
-                  <span className="font-semibold">2,157+</span> businesses already using JC Invoice
-                </p>
-              </div>
+
             </div>
             <div className="relative">
               <div className="relative z-10">
-                <img 
-                  src="/images/invoice-dashboard.png" 
-                  alt="Invoice Dashboard" 
+                <img
+                  src="/images/top-1.png"
+                  alt="Invoice Dashboard"
                   className="w-full rounded-lg shadow-2xl"
                 />
               </div>
-              <div className="absolute -top-4 -right-4 -left-4 -bottom-4 bg-[#4F46E5] rounded-lg transform rotate-2 z-0"></div>
+              <div className="absolute -top-4 -right-4 -left-4 -bottom-4 bg-[#d4a373] rounded-lg transform rotate-2 z-0"></div>
             </div>
           </div>
         </div>
@@ -66,174 +84,69 @@ const Home = () => {
         <div className="container mx-auto px-4 lg:px-6">
           <div className="text-center mb-16">
             <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-              Everything you need to manage invoices
+              Here are the features you can use
             </h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Powerful features to help you create, manage, and track invoices with ease
+              Powerful features to help you create, manage, and track invoices with ease. And stay tuned with our upcoming mobile app!
             </p>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[
-              {
-                icon: "📝",
-                title: "Easy Invoice Creation",
-                description: "Create professional invoices in minutes with our intuitive interface and templates"
-              },
-              {
-                icon: "🔄",
-                title: "Automated Reminders",
-                description: "Set up automatic payment reminders to get paid faster"
-              },
-              {
-                icon: "📊",
-                title: "Financial Reports",
-                description: "Generate detailed reports to track your business performance"
-              },
-              {
-                icon: "🌐",
-                title: "Multi-Currency Support",
-                description: "Create invoices in any currency and get paid in your preferred currency"
-              },
-              {
-                icon: "📱",
-                title: "Mobile Friendly",
-                description: "Access your invoices and manage payments from any device"
-              },
-              {
-                icon: "🔒",
-                title: "Secure & Reliable",
-                description: "Your data is encrypted and securely stored in the cloud"
-              }
-            ].map((feature, index) => (
+            {cards.map((feature, index) => (
               <div key={index} className="p-6 rounded-xl border border-gray-200 hover:shadow-lg transition-shadow">
-                <div className="text-4xl mb-4">{feature.icon}</div>
+                <div className="text-4xl mb-4">
+                  {React.createElement(feature.icon, { className: "w-12 h-12 text-[#d4a373]" })}
+                </div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">{feature.title}</h3>
                 <p className="text-gray-600">{feature.description}</p>
               </div>
             ))}
           </div>
-        </div>
-      </div>
 
-      {/* Pricing Section */}
-      <div className="py-24 bg-[#F9FAFB]">
-        <div className="container mx-auto px-4 lg:px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-              Simple, transparent pricing
-            </h2>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              No hidden fees. No surprises. Start free and upgrade when you need to.
-            </p>
-          </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {[
-              {
-                name: "Free",
-                price: "0",
-                features: [
-                  "5 invoices per month",
-                  "Basic templates",
-                  "Email support",
-                  "Export as PDF"
-                ]
-              },
-              {
-                name: "Pro",
-                price: "15",
-                popular: true,
-                features: [
-                  "Unlimited invoices",
-                  "Custom templates",
-                  "Priority support",
-                  "Advanced reporting",
-                  "Team collaboration"
-                ]
-              },
-              {
-                name: "Enterprise",
-                price: "49",
-                features: [
-                  "All Pro features",
-                  "Custom branding",
-                  "API access",
-                  "Dedicated support",
-                  "Custom integration"
-                ]
-              }
-            ].map((plan, index) => (
-              <div 
-                key={index} 
-                className={`p-8 rounded-xl ${
-                  plan.popular 
-                    ? 'bg-[#4F46E5] text-white ring-4 ring-[#4F46E5] ring-opacity-50' 
-                    : 'bg-white border border-gray-200'
-                }`}
-              >
-                <h3 className="text-xl font-semibold mb-2">{plan.name}</h3>
-                <div className="mb-6">
-                  <span className="text-4xl font-bold">${plan.price}</span>
-                  <span className="text-sm">/month</span>
-                </div>
-                <ul className="space-y-3 mb-8">
-                  {plan.features.map((feature, i) => (
-                    <li key={i} className="flex items-center">
-                      <svg className={`w-5 h-5 mr-2 ${plan.popular ? 'text-white' : 'text-[#4F46E5]'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                      </svg>
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
+          {/* Mobile App Preview Section */}
+          <div className="mt-16 flex flex-col-reverse lg:flex-row items-center gap-8">
+            <div className="lg:w-1/2">
+              <img
+                src="/images/undraw_text-messages_978a.svg"
+                alt="Mobile App Preview"
+                className="w-full max-w-md mx-auto"
+              />
+            </div>
+            <div className="lg:w-1/2">
+              <h3 className="text-3xl font-bold text-gray-900 mb-4">
+                Mobile App Coming Soon!
+              </h3>
+              <p className="text-lg text-gray-600 mb-6">
+                Our mobile app will revolutionize how you communicate with your staff. 
+                Stay connected, share updates, and manage your business on the go.
+              </p>
+              <div className="flex flex-wrap gap-4">
                 <Button
-                  variant={plan.popular ? "secondary" : "primary"}
-                  className={`w-full py-3 ${
-                    plan.popular 
-                      ? 'bg-white text-[#4F46E5] hover:bg-gray-50' 
-                      : 'bg-[#4F46E5] text-white hover:bg-[#4338CA]'
-                  }`}
+                  variant="secondary"
+                  size="large"
+                  icon={AiFillApple}
+                  className="px-8 py-4 bg-gray-900 text-white hover:bg-gray-800"
                 >
-                  Get Started
+                  Coming to iOS
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="large"
+                  icon={AiFillAndroid}
+                  className="px-8 py-4 bg-[#d4a373] text-white hover:bg-[#ce9155]"
+                >
+                  Coming to Android
                 </Button>
               </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* CTA Section */}
-      <div className="py-24 bg-white">
-        <div className="container mx-auto px-4 lg:px-6">
-          <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-6">
-              Ready to streamline your invoicing?
-            </h2>
-            <p className="text-lg text-gray-600 mb-8">
-              Join thousands of businesses who trust JC Invoice for their invoicing needs
-            </p>
-            <div className="flex flex-wrap justify-center gap-4">
-              <Link to="/create-invoice">
-                <Button 
-                  variant="primary" 
-                  size="large"
-                  className="px-8 py-4 bg-[#4F46E5] hover:bg-[#4338CA] text-white"
-                >
-                  Get Started For Free
-                </Button>
-              </Link>
-              <Link to="/contact">
-                <Button 
-                  variant="secondary" 
-                  size="large"
-                  className="px-8 py-4 border-2 border-[#4F46E5] text-[#4F46E5] hover:bg-[#EEF2FF]"
-                >
-                  Contact Sales
-                </Button>
-              </Link>
             </div>
           </div>
         </div>
       </div>
+
+    {/* footer */}
+
+      <Footer/>
+
+
     </div>
   );
 };
