@@ -140,14 +140,7 @@ const Home = () => {
             </div>
           </div>
         </div>
-      </div>
-
-    {/* footer */}
-
-      <Footer/>
-
-
-    </div>
+      </div>    </div>
   );
 };
 
