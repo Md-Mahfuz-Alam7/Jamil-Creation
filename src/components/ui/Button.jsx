@@ -15,8 +15,8 @@ const Button = ({
   const baseClasses = 'font-bold rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 flex items-center justify-center';
   
   const variants = {
-    primary: 'bg-[#0c7ff2] text-[#f7f9fc] hover:bg-blue-700 disabled:bg-gray-400 focus:ring-blue-500',
-    secondary: 'bg-[#e8edf4] text-[#0c141c] hover:bg-gray-300 disabled:bg-gray-100 focus:ring-gray-500',
+    primary: 'bg-[#d4a373] text-[white] hover:bg-[#ce9155]',
+    secondary: 'bg-gray-900 text-white hover:bg-gray-800',
     outline: 'border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:border-gray-200 disabled:text-gray-400 focus:ring-gray-500',
   };
   

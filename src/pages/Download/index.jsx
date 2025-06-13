@@ -98,8 +98,8 @@ const DownloadPage = () => {
           </p>
           <Button
             icon={FaDownload}
-            variant="secondary"
-            className="px-8 py-4 bg-white text-[#d4a373] hover:bg-gray-100"
+            variant="download"
+            className="px-8 py-4 bg-white text-[#d4a373] hover:bg-gray-900 hover:text-white"
           >
             Download Now
           </Button>

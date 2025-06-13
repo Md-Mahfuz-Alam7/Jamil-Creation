@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import Button from '../../components/ui/Button';
 import { AiFillAndroid, AiFillApple } from "react-icons/ai";
 import { FaFileInvoice, FaDatabase, FaFileDownload } from "react-icons/fa";
-import Footer from '../../components/common/Footer';
 
 const Home = () => {
 
@@ -129,7 +128,7 @@ const Home = () => {
                   Coming to iOS
                 </Button>
                 <Button
-                  variant="secondary"
+                  variant="primary"
                   size="large"
                   icon={AiFillAndroid}
                   className="px-8 py-4 bg-[#d4a373] text-white hover:bg-[#ce9155]"
