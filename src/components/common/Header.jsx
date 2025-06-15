@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import SignupModal from '../SignupModal';
+import LoginModal from '../LoginModal';
 
 const Header = () => {
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, logout } = useAuth();
   const [showSignupModal, setShowSignupModal] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
   const getNavLinkClass = (path) => {
     const baseClass = "text-[14px] font-medium leading-[17px] font-inter transition-colors duration-200";
@@ -90,12 +92,14 @@ const Header = () => {
               <Link to="/download" className={getNavLinkClass('/download')}>
                 Download
               </Link>
-              <button
-                onClick={() => setShowSignupModal(true)}
-                className="px-4 py-2 bg-[#d4a373] text-white rounded-lg text-sm font-medium hover:bg-[#cb997e] transition-colors duration-200 w-full md:w-auto text-center"
-              >
-                Get Started
-              </button>
+              <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-4 w-full md:w-auto">
+                <button
+                  onClick={() => setShowLoginModal(true)}
+                  className="px-4 py-2 bg-[#d4a373] text-white rounded-lg text-sm font-medium hover:bg-[#cb997e] transition-colors duration-200 w-full md:w-auto text-center"
+                >
+                  Get Started
+                </button>
+              </div>
             </>
           )}
         </nav>
@@ -103,6 +107,14 @@ const Header = () => {
       <SignupModal 
         isOpen={showSignupModal} 
         onClose={() => setShowSignupModal(false)} 
+      />
+      <LoginModal 
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        onSignupClick={() => {
+          setShowLoginModal(false);
+          setShowSignupModal(true);
+        }}
       />
     </>
   );

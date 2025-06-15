@@ -1,0 +1,26 @@
+{
+  "short_name": "Jamil Creation",
+  "name": "Jamil Creation Invoice App",
+  "description": "A custom web app for Jamil Creation with invoice creation and management features",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "images/WhatsApp_Image_2024-10-26_at_02.46.15_72c5ae0f-removebg-preview.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "images/WhatsApp_Image_2024-10-26_at_02.46.15_72c5ae0f-removebg-preview.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#d4a373",
+  "background_color": "#ffffff"
+}

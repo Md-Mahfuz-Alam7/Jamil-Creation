@@ -41,8 +41,8 @@ import DownloadPage from './pages/Download';
 
 const AppLayout = ({ children }) => {
   const location = useLocation();
-  // Only show footer on home and download pages
-  const showFooter = ['/', '/download'].includes(location.pathname);
+  // Hide footer on auth-related and dashboard pages
+  const hideFooter = ['/dashboard', '/create-invoice', '/signup', '/login'].includes(location.pathname);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -50,7 +50,7 @@ const AppLayout = ({ children }) => {
       <div className="flex-grow">
         {children}
       </div>
-      {showFooter && <Footer />}
+      {!hideFooter && <Footer />}
     </div>
   );
 };

@@ -1,21 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Button from '../../components/ui/Button';
 import InputField from '../../components/ui/InputField';
 import Textarea from '../../components/ui/Textarea';
 import Dropdown from '../../components/ui/Dropdown';
 import InvoicePreview from '../../components/invoice/InvoicePreview';
+import { getNextInvoiceNumber, getTodayDate } from '../../firebase/invoiceUtils';
+import { db } from '../../firebase/config';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { useAuth } from '../../context/AuthContext';
 
 const CreateNewInvoice = () => {
+  const { user } = useAuth(); // Get the current user
   const [invoiceData, setInvoiceData] = useState({
     invoiceNumber: '',
     invoiceDate: '',
     dueDate: '',
-    billFrom: {
-      companyName: '',
-      address: '',
-      email: '',
-      phone: ''
-    },
     billTo: {
       clientName: '',
       companyName: '',
@@ -36,6 +35,25 @@ const CreateNewInvoice = () => {
     receivedAmount: 0.00,
     grandTotal: 0.00
   });
+
+  useEffect(() => {
+    const initializeInvoice = async () => {
+      try {
+        const nextInvoiceNumber = await getNextInvoiceNumber();
+        const today = getTodayDate();
+        
+        setInvoiceData(prev => ({
+          ...prev,
+          invoiceNumber: nextInvoiceNumber,
+          invoiceDate: today
+        }));
+      } catch (error) {
+        console.error('Error initializing invoice:', error);
+      }
+    };
+
+    initializeInvoice();
+  }, []);
 
   const handleInputChange = (section, field, value) => {
     if (section) {
@@ -116,19 +134,155 @@ const CreateNewInvoice = () => {
     calculateSummary(updatedItems);
   };
 
-  const handleSave = () => {
-    console.log('Saving invoice...', invoiceData);
-    alert('Invoice saved successfully!');
+  const saveInvoiceToFirestore = async (status = 'draft') => {
+    if (!user) {
+      throw new Error('You must be logged in to save invoices');
+    }
+
+    // Validate required fields
+    if (!invoiceData.invoiceNumber || !invoiceData.invoiceDate) {
+      throw new Error('Invoice number and date are required');
+    }
+
+    // Validate items
+    if (invoiceData.items.length === 0) {
+      throw new Error('Please add at least one item to the invoice');
+    }
+
+    // Clean up the data to ensure all numbers are properly formatted
+    const cleanedItems = invoiceData.items.map(item => ({
+      ...item,
+      quantity: Number(item.quantity) || 0,
+      unitPrice: Number(item.unitPrice) || 0,
+      taxPercent: Number(item.taxPercent) || 0,
+      lineTotal: Number(item.lineTotal) || 0
+    }));
+
+    // Clean up summary numbers
+    const cleanedSummary = {
+      subtotal: Number(summary.subtotal) || 0,
+      discount: Number(summary.discount) || 0,
+      taxTotal: Number(summary.taxTotal) || 0,
+      shipping: Number(summary.shipping) || 0,
+      receivedAmount: Number(summary.receivedAmount) || 0,
+      grandTotal: Number(summary.grandTotal) || 0
+    };
+
+    try {
+      const invoiceToSave = {
+        invoiceNumber: invoiceData.invoiceNumber,
+        invoiceDate: invoiceData.invoiceDate,
+        dueDate: invoiceData.dueDate,
+        billTo: invoiceData.billTo,
+        items: cleanedItems,
+        notes: invoiceData.notes,
+        paymentMethod: invoiceData.paymentMethod,
+        summary: cleanedSummary,
+        status,
+        userId: user.uid,
+        userEmail: user.email,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      };
+
+      const invoicesRef = collection(db, 'invoices');
+      const docRef = await addDoc(invoicesRef, invoiceToSave);
+      console.log('Invoice saved successfully with ID:', docRef.id);
+      return docRef.id;
+    } catch (error) {
+      console.error('Detailed error in saveInvoiceToFirestore:', {
+        error: error.message,
+        code: error.code,
+        fullError: error
+      });
+      throw new Error(`Failed to save invoice: ${error.message}`);
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      console.log('Starting to save invoice...');
+      await saveInvoiceToFirestore('draft');
+
+      // Get new invoice number for next invoice
+      const nextInvoiceNumber = await getNextInvoiceNumber();
+
+      // Reset the form
+      setInvoiceData(prev => ({
+        ...prev,
+        invoiceNumber: nextInvoiceNumber,
+        billTo: {
+          clientName: '',
+          companyName: '',
+          address: '',
+          email: '',
+          phone: ''
+        },
+        items: [],
+        notes: '',
+        paymentMethod: ''
+      }));
+
+      // Reset summary
+      setSummary({
+        subtotal: 0.00,
+        discount: 0.00,
+        taxTotal: 0.00,
+        shipping: 0.00,
+        receivedAmount: 0.00,
+        grandTotal: 0.00
+      });
+
+      alert('Invoice saved successfully as draft!');
+    } catch (error) {
+      console.error('Error saving invoice:', error);
+      alert(error.message || 'Error saving invoice. Please try again.');
+    }
   };
 
   const handlePreview = () => {
     console.log('Previewing invoice...', invoiceData);
-    alert('Opening invoice preview...');
   };
 
-  const handleSendInvoice = () => {
-    console.log('Sending invoice...', invoiceData);
-    alert('Invoice sent successfully!');
+  const handleSendInvoice = async () => {
+    try {
+      // Save invoice as sent
+      await saveInvoiceToFirestore('sent');
+      
+      // Get new invoice number for next invoice
+      const nextInvoiceNumber = await getNextInvoiceNumber();
+      
+      // Reset the form
+      setInvoiceData(prev => ({
+        ...prev,
+        invoiceNumber: nextInvoiceNumber,
+        billTo: {
+          clientName: '',
+          companyName: '',
+          address: '',
+          email: '',
+          phone: ''
+        },
+        items: [],
+        notes: '',
+        paymentMethod: ''
+      }));
+
+      // Reset summary
+      setSummary({
+        subtotal: 0.00,
+        discount: 0.00,
+        taxTotal: 0.00,
+        shipping: 0.00,
+        receivedAmount: 0.00,
+        grandTotal: 0.00
+      });
+
+      alert('Invoice sent successfully!');
+    } catch (error) {
+      console.error('Error sending invoice:', error);
+      alert(error.message || 'Error sending invoice. Please try again.');
+    }
   };
 
   const paymentMethodOptions = [
@@ -139,7 +293,7 @@ const CreateNewInvoice = () => {
     { value: 'cash', label: 'Cash' }
   ];
 
-  return (
+  return ( 
     <div className="min-h-screen bg-[#f7f9fc]">
       <div className="flex h-[calc(100vh-65px)]">
         {/* Form Section */}
@@ -159,7 +313,6 @@ const CreateNewInvoice = () => {
                 label="Invoice Number"
                 value={invoiceData.invoiceNumber}
                 onChange={(e) => handleInputChange(null, 'invoiceNumber', e.target.value)}
-                placeholder="Enter invoice number"
               />
               <InputField
                 label="Invoice Date"
@@ -305,7 +458,7 @@ const CreateNewInvoice = () => {
               ))}
             </div>
 
-            {/* Add/Remove Item Buttons */}
+            {/* Add Item Button */}
             <div className="flex gap-4 mt-4 w-full">
               <Button
                 variant="primary"
@@ -444,7 +597,7 @@ const CreateNewInvoice = () => {
           </section>
 
           {/* Action Buttons */}
-          <div className="flex justify-start gap-4">
+          <div className="flex justify-start gap-4 flex-wrap">
             <Button
               variant="secondary"
               onClick={handleSave}
@@ -466,7 +619,6 @@ const CreateNewInvoice = () => {
             >
               Save Invoice
             </Button>
-
 
           </div>
         </div>
