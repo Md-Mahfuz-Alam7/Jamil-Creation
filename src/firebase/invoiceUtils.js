@@ -11,7 +11,22 @@ export const initializeCounter = async () => {
   }
 };
 
-// Get next invoice number
+// Get current invoice number without incrementing counter
+export const getCurrentInvoiceNumber = async () => {
+  const counterRef = doc(db, 'counters', 'invoice');
+  const counterDoc = await getDoc(counterRef);
+  
+  if (!counterDoc.exists()) {
+    await initializeCounter();
+    return 'INV-0001';
+  }
+  
+  const currentValue = counterDoc.data().value;
+  const formattedNumber = String(currentValue + 1).padStart(4, '0');
+  return `INV-${formattedNumber}`;
+};
+
+// Get next invoice number and increment counter
 export const getNextInvoiceNumber = async () => {
   const counterRef = doc(db, 'counters', 'invoice');
   const counterDoc = await getDoc(counterRef);

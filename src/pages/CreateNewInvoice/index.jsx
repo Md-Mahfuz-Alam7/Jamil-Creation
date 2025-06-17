@@ -4,13 +4,13 @@ import InputField from '../../components/ui/InputField';
 import Textarea from '../../components/ui/Textarea';
 import Dropdown from '../../components/ui/Dropdown';
 import InvoicePreview from '../../components/invoice/InvoicePreview';
-import { getNextInvoiceNumber, getTodayDate } from '../../firebase/invoiceUtils';
+import { getCurrentInvoiceNumber, getNextInvoiceNumber, getTodayDate } from '../../firebase/invoiceUtils';
 import { db } from '../../firebase/config';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useAuth } from '../../context/AuthContext';
 
 const CreateNewInvoice = () => {
-  const { user } = useAuth(); // Get the current user
+  const { user } = useAuth();
   const [invoiceData, setInvoiceData] = useState({
     invoiceNumber: '',
     invoiceDate: '',
@@ -39,21 +39,24 @@ const CreateNewInvoice = () => {
   useEffect(() => {
     const initializeInvoice = async () => {
       try {
-        const nextInvoiceNumber = await getNextInvoiceNumber();
-        const today = getTodayDate();
-        
-        setInvoiceData(prev => ({
-          ...prev,
-          invoiceNumber: nextInvoiceNumber,
-          invoiceDate: today
-        }));
+        // Only get current invoice number if we don't already have one
+        if (!invoiceData.invoiceNumber) {
+          const currentInvoiceNumber = await getCurrentInvoiceNumber();
+          const today = getTodayDate();
+          
+          setInvoiceData(prev => ({
+            ...prev,
+            invoiceNumber: currentInvoiceNumber,
+            invoiceDate: today
+          }));
+        }
       } catch (error) {
         console.error('Error initializing invoice:', error);
       }
     };
 
     initializeInvoice();
-  }, []);
+  }, []); // Only run on component mount
 
   const handleInputChange = (section, field, value) => {
     if (section) {
@@ -149,26 +152,29 @@ const CreateNewInvoice = () => {
       throw new Error('Please add at least one item to the invoice');
     }
 
-    // Clean up the data to ensure all numbers are properly formatted
-    const cleanedItems = invoiceData.items.map(item => ({
-      ...item,
-      quantity: Number(item.quantity) || 0,
-      unitPrice: Number(item.unitPrice) || 0,
-      taxPercent: Number(item.taxPercent) || 0,
-      lineTotal: Number(item.lineTotal) || 0
-    }));
-
-    // Clean up summary numbers
-    const cleanedSummary = {
-      subtotal: Number(summary.subtotal) || 0,
-      discount: Number(summary.discount) || 0,
-      taxTotal: Number(summary.taxTotal) || 0,
-      shipping: Number(summary.shipping) || 0,
-      receivedAmount: Number(summary.receivedAmount) || 0,
-      grandTotal: Number(summary.grandTotal) || 0
-    };
+    // First increment the invoice counter to reserve the next number
+    const nextNumber = await getNextInvoiceNumber();
 
     try {
+      // Clean up the data to ensure all numbers are properly formatted
+      const cleanedItems = invoiceData.items.map(item => ({
+        ...item,
+        quantity: Number(item.quantity) || 0,
+        unitPrice: Number(item.unitPrice) || 0,
+        taxPercent: Number(item.taxPercent) || 0,
+        lineTotal: Number(item.lineTotal) || 0
+      }));
+
+      // Clean up summary numbers
+      const cleanedSummary = {
+        subtotal: Number(summary.subtotal) || 0,
+        discount: Number(summary.discount) || 0,
+        taxTotal: Number(summary.taxTotal) || 0,
+        shipping: Number(summary.shipping) || 0,
+        receivedAmount: Number(summary.receivedAmount) || 0,
+        grandTotal: Number(summary.grandTotal) || 0
+      };
+
       const invoiceToSave = {
         invoiceNumber: invoiceData.invoiceNumber,
         invoiceDate: invoiceData.invoiceDate,
@@ -188,6 +194,13 @@ const CreateNewInvoice = () => {
       const invoicesRef = collection(db, 'invoices');
       const docRef = await addDoc(invoicesRef, invoiceToSave);
       console.log('Invoice saved successfully with ID:', docRef.id);
+      
+      // Update state with next invoice number
+      setInvoiceData(prev => ({
+        ...prev,
+        invoiceNumber: nextNumber
+      }));
+
       return docRef.id;
     } catch (error) {
       console.error('Detailed error in saveInvoiceToFirestore:', {
