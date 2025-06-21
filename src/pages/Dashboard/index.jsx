@@ -318,21 +318,25 @@ const Dashboard = () => {
                           {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
                         </span>
                       </td>                    <td className="py-3 px-4">
-                      <div className="flex gap-2 items-center justify-end">
-                        <button
-                          onClick={() => handleViewInvoice(invoice)}
-                          className="text-blue-600 hover:text-blue-800 rounded-md px-2 py-1 hover:bg-blue-50"
-                        >
-                          View
-                        </button>
+                      <div className="flex flex-col gap-2 items-end">
                         {invoice.status !== 'paid' && invoice.status !== 'draft' && (
                           <button
                             onClick={() => handleMarkAsPaid(invoice)}
-                            className="bg-green-500 text-white px-3 py-1 rounded-md hover:bg-green-600 transition-colors ml-2"
+                            className="w-full bg-green-500 text-white px-4 py-1.5 rounded-lg hover:bg-green-600 transition-colors text-sm font-medium shadow-sm hover:shadow"
                           >
                             Mark Paid
                           </button>
                         )}
+                        <button
+                          onClick={() => handleViewInvoice(invoice)}
+                          className="w-full bg-blue-500 text-white px-4 py-1.5 rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium shadow-sm hover:shadow flex items-center justify-center gap-1"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                          View/Edit
+                        </button>
                       </div>
                     </td>
                     </tr>
@@ -342,13 +346,17 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
-      </div>
-
-      {/* View Invoice Modal */}
+      </div>      {/* View Invoice Modal */}
       {selectedInvoice && (
         <ViewInvoiceModal
           invoice={selectedInvoice}
           onClose={() => setSelectedInvoice(null)}
+          onUpdate={(updatedInvoice) => {
+            setInvoices(prev => prev.map(inv => 
+              inv.id === updatedInvoice.id ? { ...inv, ...updatedInvoice } : inv
+            ));
+            setSelectedInvoice(updatedInvoice);
+          }}
         />
       )}
     </div>

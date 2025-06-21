@@ -4,10 +4,28 @@ import InputField from '../../components/ui/InputField';
 import Textarea from '../../components/ui/Textarea';
 import Dropdown from '../../components/ui/Dropdown';
 import InvoicePreview from '../../components/invoice/InvoicePreview';
-import { getCurrentInvoiceNumber, getNextInvoiceNumber, getTodayDate } from '../../firebase/invoiceUtils';
+import { getTodayDate } from '../../firebase/invoiceUtils';
 import { db } from '../../firebase/config';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 import { useAuth } from '../../context/AuthContext';
+
+const getNextSequentialInvoiceNumber = async () => {
+  const invoicesRef = collection(db, 'invoices');
+  // Query invoices ordered by invoiceNumber descending, limit 1
+  const q = query(invoicesRef, orderBy('invoiceNumber', 'desc'), limit(1));
+  const querySnapshot = await getDocs(q);
+  let nextNumber = 1;
+  if (!querySnapshot.empty) {
+    const lastInvoice = querySnapshot.docs[0].data();
+    // Extract the number part, e.g., '0002' => 2
+    const lastNum = parseInt(lastInvoice.invoiceNumber, 10);
+    if (!isNaN(lastNum)) {
+      nextNumber = lastNum + 1;
+    }
+  }
+  // Format as 4-digit string
+  return nextNumber.toString().padStart(4, '0');
+};
 
 const CreateNewInvoice = () => {
   const { user } = useAuth();
@@ -36,27 +54,23 @@ const CreateNewInvoice = () => {
     grandTotal: 0.00
   });
 
+  const [isSaving, setIsSaving] = useState(false);
+
   useEffect(() => {
-    const initializeInvoice = async () => {
-      try {
-        // Only get current invoice number if we don't already have one
-        if (!invoiceData.invoiceNumber) {
-          const currentInvoiceNumber = await getCurrentInvoiceNumber();
-          const today = getTodayDate();
-          
-          setInvoiceData(prev => ({
-            ...prev,
-            invoiceNumber: currentInvoiceNumber,
-            invoiceDate: today
-          }));
-        }
-      } catch (error) {
-        console.error('Error initializing invoice:', error);
+    const setInitialInvoiceNumber = async () => {
+      if (!invoiceData.invoiceNumber) {
+        const today = getTodayDate();
+        const nextInvoiceNumber = await getNextSequentialInvoiceNumber();
+        setInvoiceData(prev => ({
+          ...prev,
+          invoiceNumber: nextInvoiceNumber,
+          invoiceDate: today
+        }));
       }
     };
-
-    initializeInvoice();
-  }, []); // Only run on component mount
+    setInitialInvoiceNumber();
+    // eslint-disable-next-line
+  }, []);
 
   const handleInputChange = (section, field, value) => {
     if (section) {
@@ -137,25 +151,39 @@ const CreateNewInvoice = () => {
     calculateSummary(updatedItems);
   };
 
+  const checkInvoiceNumberUnique = async (invoiceNumber) => {
+    const invoicesRef = collection(db, 'invoices');
+    const q = query(invoicesRef, where('invoiceNumber', '==', invoiceNumber));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.empty;
+  };
+
   const saveInvoiceToFirestore = async (status = 'draft') => {
-    if (!user) {
-      throw new Error('You must be logged in to save invoices');
-    }
-
-    // Validate required fields
-    if (!invoiceData.invoiceNumber || !invoiceData.invoiceDate) {
-      throw new Error('Invoice number and date are required');
-    }
-
-    // Validate items
-    if (invoiceData.items.length === 0) {
-      throw new Error('Please add at least one item to the invoice');
-    }
-
-    // First increment the invoice counter to reserve the next number
-    const nextNumber = await getNextInvoiceNumber();
-
+    if (isSaving) return; // Prevent duplicate saves
+    setIsSaving(true);
     try {
+      if (!user) {
+        throw new Error('You must be logged in to save invoices');
+      }
+      if (!invoiceData.invoiceNumber || !invoiceData.invoiceDate) {
+        throw new Error('Invoice number and date are required');
+      }
+      if (invoiceData.items.length === 0) {
+        throw new Error('Please add at least one item to the invoice');
+      }
+      // Ensure invoice number is unique
+      let unique = await checkInvoiceNumberUnique(invoiceData.invoiceNumber);
+      let attempts = 0;
+      let newNumber = invoiceData.invoiceNumber;
+      while (!unique && attempts < 5) {
+        newNumber = await getNextSequentialInvoiceNumber();
+        setInvoiceData(prev => ({ ...prev, invoiceNumber: newNumber }));
+        unique = await checkInvoiceNumberUnique(newNumber);
+        attempts++;
+      }
+      if (!unique) {
+        throw new Error('Could not generate a unique invoice number. Please try again.');
+      }
       // Clean up the data to ensure all numbers are properly formatted
       const cleanedItems = invoiceData.items.map(item => ({
         ...item,
@@ -164,8 +192,6 @@ const CreateNewInvoice = () => {
         taxPercent: Number(item.taxPercent) || 0,
         lineTotal: Number(item.lineTotal) || 0
       }));
-
-      // Clean up summary numbers
       const cleanedSummary = {
         subtotal: Number(summary.subtotal) || 0,
         discount: Number(summary.discount) || 0,
@@ -174,9 +200,8 @@ const CreateNewInvoice = () => {
         receivedAmount: Number(summary.receivedAmount) || 0,
         grandTotal: Number(summary.grandTotal) || 0
       };
-
       const invoiceToSave = {
-        invoiceNumber: invoiceData.invoiceNumber,
+        invoiceNumber: newNumber,
         invoiceDate: invoiceData.invoiceDate,
         dueDate: invoiceData.dueDate,
         billTo: invoiceData.billTo,
@@ -190,25 +215,39 @@ const CreateNewInvoice = () => {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       };
-
       const invoicesRef = collection(db, 'invoices');
       const docRef = await addDoc(invoicesRef, invoiceToSave);
       console.log('Invoice saved successfully with ID:', docRef.id);
-      
-      // Update state with next invoice number
+      // Generate a new invoice number for the next invoice
+      const nextInvoiceNumber = await getNextSequentialInvoiceNumber();
       setInvoiceData(prev => ({
         ...prev,
-        invoiceNumber: nextNumber
+        invoiceNumber: nextInvoiceNumber,
+        billTo: {
+          clientName: '',
+          companyName: '',
+          address: '',
+          email: '',
+          phone: ''
+        },
+        items: [],
+        notes: '',
+        paymentMethod: ''
       }));
-
+      setSummary({
+        subtotal: 0.00,
+        discount: 0.00,
+        taxTotal: 0.00,
+        shipping: 0.00,
+        receivedAmount: 0.00,
+        grandTotal: 0.00
+      });
+      setIsSaving(false);
       return docRef.id;
     } catch (error) {
-      console.error('Detailed error in saveInvoiceToFirestore:', {
-        error: error.message,
-        code: error.code,
-        fullError: error
-      });
-      throw new Error(`Failed to save invoice: ${error.message}`);
+      setIsSaving(false);
+      console.error('Detailed error in saveInvoiceToFirestore:', error);
+      throw error;
     }
   };
 
@@ -217,13 +256,10 @@ const CreateNewInvoice = () => {
       console.log('Starting to save invoice...');
       await saveInvoiceToFirestore('draft');
 
-      // Get new invoice number for next invoice
-      const nextInvoiceNumber = await getNextInvoiceNumber();
-
-      // Reset the form
+      // Reset the form and generate a new invoice number
       setInvoiceData(prev => ({
         ...prev,
-        invoiceNumber: nextInvoiceNumber,
+        invoiceNumber: generateInvoiceNumber(),
         billTo: {
           clientName: '',
           companyName: '',
@@ -262,13 +298,10 @@ const CreateNewInvoice = () => {
       // Save invoice as sent
       await saveInvoiceToFirestore('sent');
       
-      // Get new invoice number for next invoice
-      const nextInvoiceNumber = await getNextInvoiceNumber();
-      
-      // Reset the form
+      // Reset the form and generate a new invoice number
       setInvoiceData(prev => ({
         ...prev,
-        invoiceNumber: nextInvoiceNumber,
+        invoiceNumber: generateInvoiceNumber(),
         billTo: {
           clientName: '',
           companyName: '',
