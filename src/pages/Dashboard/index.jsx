@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { FaFileInvoice, FaChartBar, FaMoneyBillWave, FaClock } from 'react-icons/fa';
 import { db } from '../../firebase/config';
-import { collection, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
+import { collection, query, where, getDocs, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 import ViewInvoiceModal from '../../components/invoice/ViewInvoiceModal';
 import { exportInvoicesToExcel } from '../../utils/exportToExcel';
 
@@ -147,6 +147,17 @@ const Dashboard = () => {
     }
   };
 
+  const handleDeleteInvoice = async (invoiceId) => {
+    if (!window.confirm('Are you sure you want to delete this invoice?')) return;
+    try {
+      await deleteDoc(doc(db, 'invoices', invoiceId));
+      setInvoices(prev => prev.filter(inv => inv.id !== invoiceId));
+      alert('Invoice deleted successfully!');
+    } catch (error) {
+      alert('Failed to delete invoice: ' + error.message);
+    }
+  };
+
   const getStatusColor = (status, dueAmount) => {
     if (status === 'paid') return 'bg-green-100 text-green-800';
     if (status === 'draft') return 'bg-gray-100 text-gray-800';
@@ -197,46 +208,50 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="bg-gray-50 min-h-screen">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-[#f7f9fc] via-[#f3edea] to-[#e9ecef] font-inter">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         {/* Welcome Section */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">
-            Welcome back, {user?.email}
+        <div className="mb-10">
+          <h1 className="text-3xl font-extrabold text-[#0c141c] flex items-center gap-3">
+            <span className="inline-block w-2 h-8 bg-[#d4a373] rounded-full"></span>
+            Welcome back, <span className="text-[#d4a373]">{user?.email}</span>
           </h1>
-          <p className="text-gray-600">Here's what's happening with your invoices today.</p>
+          <p className="text-gray-600 mt-2 text-lg">Here's what's happening with your invoices today.</p>
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
           {statsCards.map((stat, index) => (
             <div
               key={index}
-              className="bg-white rounded-lg shadow p-6 flex items-center justify-between"
+              className="bg-white/80 backdrop-blur-md rounded-2xl shadow-lg p-7 flex items-center justify-between border border-[#f3edea] hover:shadow-2xl transition-shadow duration-200"
             >
               <div>
-                <p className="text-gray-500 text-sm">{stat.label}</p>
-                <p className="text-2xl font-semibold text-gray-900">{stat.value}</p>
+                <p className="text-gray-500 text-base font-medium mb-1">{stat.label}</p>
+                <p className="text-3xl font-bold text-gray-900">{stat.value}</p>
               </div>
-              <stat.icon className={`h-8 w-8 ${stat.color}`} />
+              <stat.icon className={`h-10 w-10 ${stat.color} drop-shadow`} />
             </div>
           ))}
         </div>
 
         {/* Quick Actions */}
-        <div className="bg-white rounded-lg shadow mb-8">
-          <div className="p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
-            <div className="flex gap-4">
+        <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-lg mb-10 border border-[#f3edea]">
+          <div className="p-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <h2 className="text-xl font-bold text-[#0c141c] flex items-center gap-2">
+              <span className="inline-block w-2 h-6 bg-[#d4a373] rounded-full"></span>
+              Quick Actions
+            </h2>
+            <div className="flex gap-4 flex-wrap">
               <Link
                 to="/create-invoice"
-                className="bg-[#d4a373] text-white px-4 py-2 rounded-lg hover:bg-[#cb997e] transition-colors duration-200"
+                className="bg-[#d4a373] text-white px-6 py-2 rounded-xl font-semibold shadow hover:bg-[#cb997e] transition-colors duration-200"
               >
                 Create New Invoice
               </Link>
               <button
                 onClick={handleExportToExcel}
-                className="border border-[#d4a373] text-[#d4a373] px-4 py-2 rounded-lg hover:bg-[#d4a373] hover:text-white transition-colors duration-200"
+                className="border border-[#d4a373] text-[#d4a373] px-6 py-2 rounded-xl font-semibold shadow hover:bg-[#d4a373] hover:text-white transition-colors duration-200"
               >
                 Download All Invoices
               </button>
@@ -245,10 +260,13 @@ const Dashboard = () => {
         </div>
 
         {/* Invoices List */}
-        <div className="bg-white rounded-lg shadow">
-          <div className="p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-lg font-semibold text-gray-900">Invoices</h2>
+        <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-xl border border-[#f3edea]">
+          <div className="p-8">
+            <div className="flex justify-between items-center mb-8">
+              <h2 className="text-xl font-bold text-[#0c141c] flex items-center gap-2">
+                <span className="inline-block w-2 h-6 bg-[#d4a373] rounded-full"></span>
+                Invoices
+              </h2>
               <div className="flex gap-2">
                 <button
                   onClick={() => setFilter('all')}
@@ -284,20 +302,20 @@ const Dashboard = () => {
                 </button>
               </div>
             </div>
-            <div className="overflow-x-auto">
-              <table className="min-w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-3 px-4">Invoice ID</th>
-                    <th className="text-left py-3 px-4">Client</th>
-                    <th className="text-left py-3 px-4">Date</th>
-                    <th className="text-left py-3 px-4">Amount</th>
-                    <th className="text-left py-3 px-4">Due</th>
-                    <th className="text-left py-3 px-4">Status</th>
-                    <th className="text-left py-3 px-4">Actions</th>
+            <div className="overflow-x-auto rounded-xl border border-[#e9ecef] bg-white/80">
+              <table className="min-w-full divide-y divide-[#e9ecef]">
+                <thead className="bg-[#f7f9fc]">
+                  <tr>
+                    <th className="text-left py-3 px-4 font-semibold text-[#0c141c]">Invoice ID</th>
+                    <th className="text-left py-3 px-4 font-semibold text-[#0c141c]">Client</th>
+                    <th className="text-left py-3 px-4 font-semibold text-[#0c141c]">Date</th>
+                    <th className="text-left py-3 px-4 font-semibold text-[#0c141c]">Amount</th>
+                    <th className="text-left py-3 px-4 font-semibold text-[#0c141c]">Due</th>
+                    <th className="text-left py-3 px-4 font-semibold text-[#0c141c]">Status</th>
+                    <th className="text-left py-3 px-4 font-semibold text-[#0c141c]">Actions</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="bg-white/80">
                   {filteredInvoices.map((invoice) => (
                     <tr key={invoice.id} className="border-b last:border-b-0 hover:bg-gray-50">
                       <td className="py-3 px-4 text-[#d4a373]">{invoice.invoiceNumber}</td>
@@ -318,24 +336,45 @@ const Dashboard = () => {
                           {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
                         </span>
                       </td>                    <td className="py-3 px-4">
-                      <div className="flex flex-col gap-2 items-end">
+                      <div className="flex flex-row gap-3 items-center">
                         {invoice.status !== 'paid' && invoice.status !== 'draft' && (
                           <button
                             onClick={() => handleMarkAsPaid(invoice)}
-                            className="w-full bg-green-500 text-white px-4 py-1.5 rounded-lg hover:bg-green-600 transition-colors text-sm font-medium shadow-sm hover:shadow"
+                            className="group border border-green-500 text-green-600 bg-white hover:bg-green-500 hover:text-white px-4 py-2 rounded-lg transition-all duration-150 text-sm font-semibold flex items-center gap-2 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-green-300 active:scale-95"
+                            title="Mark as Paid"
                           >
-                            Mark Paid
+                            <span className="rounded-full bg-green-100 group-hover:bg-green-500 p-1 flex items-center justify-center transition-colors duration-150">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                            </span>
+                            <span>Paid</span>
                           </button>
                         )}
                         <button
                           onClick={() => handleViewInvoice(invoice)}
-                          className="w-full bg-blue-500 text-white px-4 py-1.5 rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium shadow-sm hover:shadow flex items-center justify-center gap-1"
+                          className="group border border-blue-500 text-blue-600 bg-white hover:bg-blue-500 hover:text-white px-4 py-2 rounded-lg transition-all duration-150 text-sm font-semibold flex items-center gap-2 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-300 active:scale-95"
+                          title="View or Edit Invoice"
                         >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                          </svg>
-                          View/Edit
+                          <span className="rounded-full bg-blue-100 group-hover:bg-blue-500 p-1 flex items-center justify-center transition-colors duration-150">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                          </span>
+                          <span>Edit</span>
+                        </button>
+                        <button
+                          onClick={() => handleDeleteInvoice(invoice.id)}
+                          className="group border border-red-500 text-red-600 bg-white hover:bg-red-500 hover:text-white px-4 py-2 rounded-lg transition-all duration-150 text-sm font-semibold flex items-center gap-2 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-red-300 active:scale-95"
+                          title="Delete Invoice"
+                        >
+                          <span className="rounded-full bg-red-100 group-hover:bg-red-500 p-1 flex items-center justify-center transition-colors duration-150">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </span>
+                          <span>Delete</span>
                         </button>
                       </div>
                     </td>
