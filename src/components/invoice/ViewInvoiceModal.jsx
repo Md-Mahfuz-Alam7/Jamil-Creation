@@ -140,6 +140,13 @@ const ViewInvoiceModal = ({ invoice, onClose, onUpdate }) => {
     return true;
   };
 
+  const handlePaymentMethodChange = (value) => {
+    setEditedData(prev => ({
+      ...prev,
+      paymentMethod: value
+    }));
+  };
+
   const handleSaveChanges = async () => {
     try {
       setLoading(true);
@@ -183,6 +190,7 @@ const ViewInvoiceModal = ({ invoice, onClose, onUpdate }) => {
         },
         notes: editedData.notes || '',
         dueDate: editedData.dueDate,
+        paymentMethod: editedData.paymentMethod || '',
         summary: {
           ...summary,
           shipping: Number(summary.shipping) || 0,
@@ -301,6 +309,24 @@ const ViewInvoiceModal = ({ invoice, onClose, onUpdate }) => {
                 invoice.status === 'draft' ? 'bg-gray-100 text-gray-800' :
                 'bg-yellow-100 text-yellow-800'
               }`}>{invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}</span></p>
+              <p>Payment Method:{' '}
+                {isEditing ? (
+                  <select
+                    value={editedData.paymentMethod || ''}
+                    onChange={e => handlePaymentMethodChange(e.target.value)}
+                    className="border rounded px-2 py-1"
+                  >
+                    <option value="">Select method</option>
+                    <option value="Cash">Cash</option>
+                    <option value="Bank Transfer">Bank Transfer</option>
+                    <option value="Card">Card</option>
+                    <option value="Mobile Payment">Mobile Payment</option>
+                    <option value="Other">Other</option>
+                  </select>
+                ) : (
+                  <span className="ml-1">{invoice.paymentMethod || 'N/A'}</span>
+                )}
+              </p>
             </div>
           </div>
         </div>        {/* Items Table */}

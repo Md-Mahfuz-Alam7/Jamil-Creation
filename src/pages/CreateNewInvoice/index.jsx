@@ -55,6 +55,7 @@ const CreateNewInvoice = () => {
   });
 
   const [isSaving, setIsSaving] = useState(false);
+  const [invoiceNumberError, setInvoiceNumberError] = useState('');
 
   useEffect(() => {
     const setInitialInvoiceNumber = async () => {
@@ -218,30 +219,6 @@ const CreateNewInvoice = () => {
       const invoicesRef = collection(db, 'invoices');
       const docRef = await addDoc(invoicesRef, invoiceToSave);
       console.log('Invoice saved successfully with ID:', docRef.id);
-      // Generate a new invoice number for the next invoice
-      const nextInvoiceNumber = await getNextSequentialInvoiceNumber();
-      setInvoiceData(prev => ({
-        ...prev,
-        invoiceNumber: nextInvoiceNumber,
-        billTo: {
-          clientName: '',
-          companyName: '',
-          address: '',
-          email: '',
-          phone: ''
-        },
-        items: [],
-        notes: '',
-        paymentMethod: ''
-      }));
-      setSummary({
-        subtotal: 0.00,
-        discount: 0.00,
-        taxTotal: 0.00,
-        shipping: 0.00,
-        receivedAmount: 0.00,
-        grandTotal: 0.00
-      });
       setIsSaving(false);
       return docRef.id;
     } catch (error) {
@@ -251,15 +228,28 @@ const CreateNewInvoice = () => {
     }
   };
 
+  const incrementInvoiceNumber = (currentNumber) => {
+    const num = parseInt(currentNumber, 10);
+    if (isNaN(num)) return '0001';
+    return (num + 1).toString().padStart(4, '0');
+  };
+
   const handleSave = async () => {
     try {
+      if (invoiceNumberError) {
+        alert(invoiceNumberError);
+        return;
+      }
       console.log('Starting to save invoice...');
       await saveInvoiceToFirestore('draft');
 
-      // Reset the form and generate a new invoice number
+      // Increment the last used invoice number for the next invoice
+      const nextInvoiceNumber = incrementInvoiceNumber(invoiceData.invoiceNumber);
       setInvoiceData(prev => ({
         ...prev,
-        invoiceNumber: generateInvoiceNumber(),
+        invoiceNumber: nextInvoiceNumber,
+        invoiceDate: getTodayDate(),
+        dueDate: '', // Reset due date
         billTo: {
           clientName: '',
           companyName: '',
@@ -298,10 +288,13 @@ const CreateNewInvoice = () => {
       // Save invoice as sent
       await saveInvoiceToFirestore('sent');
       
-      // Reset the form and generate a new invoice number
+      // Increment the last used invoice number for the next invoice
+      const nextInvoiceNumber = incrementInvoiceNumber(invoiceData.invoiceNumber);
       setInvoiceData(prev => ({
         ...prev,
-        invoiceNumber: generateInvoiceNumber(),
+        invoiceNumber: nextInvoiceNumber,
+        invoiceDate: getTodayDate(),
+        dueDate: '', // Reset due date
         billTo: {
           clientName: '',
           companyName: '',
@@ -339,6 +332,18 @@ const CreateNewInvoice = () => {
     { value: 'cash', label: 'Cash' }
   ];
 
+  // Check uniqueness on invoice number change
+  const handleInvoiceNumberChange = async (e) => {
+    const value = e.target.value;
+    setInvoiceData(prev => ({ ...prev, invoiceNumber: value }));
+    if (value) {
+      const isUnique = await checkInvoiceNumberUnique(value);
+      setInvoiceNumberError(isUnique ? '' : 'Invoice number already exists!');
+    } else {
+      setInvoiceNumberError('Invoice number is required');
+    }
+  };
+
   return ( 
     <div className="min-h-screen bg-[#f7f9fc]">
       <div className="flex h-[calc(100vh-65px)]">
@@ -358,7 +363,8 @@ const CreateNewInvoice = () => {
               <InputField
                 label="Invoice Number"
                 value={invoiceData.invoiceNumber}
-                onChange={(e) => handleInputChange(null, 'invoiceNumber', e.target.value)}
+                onChange={handleInvoiceNumberChange}
+                error={invoiceNumberError}
               />
               <InputField
                 label="Invoice Date"

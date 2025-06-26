@@ -19,6 +19,15 @@ const Dashboard = () => {
   const [invoices, setInvoices] = useState([]);
   const [filter, setFilter] = useState('all');
   const [selectedInvoice, setSelectedInvoice] = useState(null);
+  const paymentMethodOptions = [
+    { value: 'bank_transfer', label: 'Bank Transfer' },
+    { value: 'credit_card', label: 'Credit Card' },
+    { value: 'paypal', label: 'PayPal' },
+    { value: 'check', label: 'Check' },
+    { value: 'cash', label: 'Cash' }
+  ];
+  const [editingPaymentId, setEditingPaymentId] = useState(null);
+  const [newPaymentMethod, setNewPaymentMethod] = useState('');
 
   useEffect(() => {
     const fetchInvoices = async () => {
@@ -158,6 +167,23 @@ const Dashboard = () => {
     }
   };
 
+  const handleEditPayment = (invoice) => {
+    setEditingPaymentId(invoice.id);
+    setNewPaymentMethod(invoice.paymentMethod || '');
+  };
+
+  const handleSavePaymentMethod = async (invoice) => {
+    try {
+      const invoiceRef = doc(db, 'invoices', invoice.id);
+      await updateDoc(invoiceRef, { paymentMethod: newPaymentMethod });
+      setInvoices(prev => prev.map(inv => inv.id === invoice.id ? { ...inv, paymentMethod: newPaymentMethod } : inv));
+      setEditingPaymentId(null);
+      alert('Payment method updated!');
+    } catch (error) {
+      alert('Failed to update payment method: ' + error.message);
+    }
+  };
+
   const getStatusColor = (status, dueAmount) => {
     if (status === 'paid') return 'bg-green-100 text-green-800';
     if (status === 'draft') return 'bg-gray-100 text-gray-800';
@@ -168,7 +194,7 @@ const Dashboard = () => {
     if (filter === 'all') return true;
     if (filter === 'paid') return invoice.status === 'paid';
     if (filter === 'pending') return invoice.status === 'sent' && invoice.dueAmount > 0;
-    if (filter === 'draft') return invoice.status === 'draft';
+    if (filter === 'draft') return invoice.status === 'sent'; // Show 'sent' invoices for Draft filter
     return true;
   });
 
@@ -312,74 +338,88 @@ const Dashboard = () => {
                     <th className="text-left py-3 px-4 font-semibold text-[#0c141c]">Amount</th>
                     <th className="text-left py-3 px-4 font-semibold text-[#0c141c]">Due</th>
                     <th className="text-left py-3 px-4 font-semibold text-[#0c141c]">Status</th>
+                    <th className="text-left py-3 px-4 font-semibold text-[#0c141c]">Payment</th>
                     <th className="text-left py-3 px-4 font-semibold text-[#0c141c]">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white/80">
-                  {filteredInvoices.map((invoice) => (
-                    <tr key={invoice.id} className="border-b last:border-b-0 hover:bg-gray-50">
-                      <td className="py-3 px-4 text-[#d4a373]">{invoice.invoiceNumber}</td>
-                      <td className="py-3 px-4">{invoice.billTo.clientName}</td>
-                      <td className="py-3 px-4">
-                        {new Date(invoice.invoiceDate).toLocaleDateString()}
-                      </td>
-                      <td className="py-3 px-4">
-                        ৳{invoice.summary.grandTotal.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
-                      </td>
-                      <td className="py-3 px-4">
-                        ৳{invoice.dueAmount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className={`inline-block px-2 py-1 rounded-full text-xs ${
-                          getStatusColor(invoice.status, invoice.dueAmount)
-                        }`}>
-                          {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
-                        </span>
-                      </td>                    <td className="py-3 px-4">
-                      <div className="flex flex-row gap-3 items-center">
-                        {invoice.status !== 'paid' && invoice.status !== 'draft' && (
-                          <button
-                            onClick={() => handleMarkAsPaid(invoice)}
-                            className="group border border-green-500 text-green-600 bg-white hover:bg-green-500 hover:text-white px-4 py-2 rounded-lg transition-all duration-150 text-sm font-semibold flex items-center gap-2 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-green-300 active:scale-95"
-                            title="Mark as Paid"
-                          >
-                            <span className="rounded-full bg-green-100 group-hover:bg-green-500 p-1 flex items-center justify-center transition-colors duration-150">
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                              </svg>
-                            </span>
-                            <span>Paid</span>
-                          </button>
-                        )}
-                        <button
-                          onClick={() => handleViewInvoice(invoice)}
-                          className="group border border-blue-500 text-blue-600 bg-white hover:bg-blue-500 hover:text-white px-4 py-2 rounded-lg transition-all duration-150 text-sm font-semibold flex items-center gap-2 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-300 active:scale-95"
-                          title="View or Edit Invoice"
-                        >
-                          <span className="rounded-full bg-blue-100 group-hover:bg-blue-500 p-1 flex items-center justify-center transition-colors duration-150">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                            </svg>
+                  {filteredInvoices.map((invoice) => {
+                    // Mark as paid if dueAmount is 0
+                    const isPaid = invoice.dueAmount === 0;
+                    const statusLabel = isPaid ? 'Paid' : (invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1));
+                    return (
+                      <tr key={invoice.id} className="border-b last:border-b-0 hover:bg-gray-50">
+                        <td className="py-3 px-4 text-[#d4a373]">{invoice.invoiceNumber}</td>
+                        <td className="py-3 px-4">{invoice.billTo.clientName}</td>
+                        <td className="py-3 px-4">
+                          {new Date(invoice.invoiceDate).toLocaleDateString()}
+                        </td>
+                        <td className="py-3 px-4">
+                          ৳{invoice.summary.grandTotal.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className="text-red-500 font-semibold">
+                            ৳{invoice.dueAmount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                           </span>
-                          <span>Edit</span>
-                        </button>
-                        <button
-                          onClick={() => handleDeleteInvoice(invoice.id)}
-                          className="group border border-red-500 text-red-600 bg-white hover:bg-red-500 hover:text-white px-4 py-2 rounded-lg transition-all duration-150 text-sm font-semibold flex items-center gap-2 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-red-300 active:scale-95"
-                          title="Delete Invoice"
-                        >
-                          <span className="rounded-full bg-red-100 group-hover:bg-red-500 p-1 flex items-center justify-center transition-colors duration-150">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className={`inline-block px-2 py-1 rounded-full text-xs ${
+                            getStatusColor(isPaid ? 'paid' : invoice.status, invoice.dueAmount)
+                          }`}>
+                            {statusLabel}
                           </span>
-                          <span>Delete</span>
-                        </button>
-                      </div>
-                    </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className="capitalize text-gray-700 text-sm">
+                            {paymentMethodOptions.find(opt => opt.value.toLowerCase() === (invoice.paymentMethod?.toLowerCase?.() || ''))?.label || invoice.paymentMethod || '—'}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex flex-row gap-3 items-center">
+                            {(!isPaid && invoice.status !== 'paid' && invoice.status !== 'draft') && (
+                              <button
+                                onClick={() => handleMarkAsPaid(invoice)}
+                                className="group border border-green-500 text-green-600 bg-white hover:bg-green-500 hover:text-white px-4 py-2 rounded-lg transition-all duration-150 text-sm font-semibold flex items-center gap-2 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-green-300 active:scale-95"
+                                title="Mark as Paid"
+                              >
+                                <span className="rounded-full bg-green-100 group-hover:bg-green-500 p-1 flex items-center justify-center transition-colors duration-150">
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                </span>
+                                <span>Paid</span>
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleViewInvoice(invoice)}
+                              className="group border border-blue-500 text-blue-600 bg-white hover:bg-blue-500 hover:text-white px-4 py-2 rounded-lg transition-all duration-150 text-sm font-semibold flex items-center gap-2 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-300 active:scale-95"
+                              title="View or Edit Invoice"
+                            >
+                              <span className="rounded-full bg-blue-100 group-hover:bg-blue-500 p-1 flex items-center justify-center transition-colors duration-150">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                              </span>
+                              <span>Edit</span>
+                            </button>
+                            <button
+                              onClick={() => handleDeleteInvoice(invoice.id)}
+                              className="group border border-red-500 text-red-600 bg-white hover:bg-red-500 hover:text-white px-4 py-2 rounded-lg transition-all duration-150 text-sm font-semibold flex items-center gap-2 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-red-300 active:scale-95"
+                              title="Delete Invoice"
+                            >
+                              <span className="rounded-full bg-red-100 group-hover:bg-red-500 p-1 flex items-center justify-center transition-colors duration-150">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              </span>
+                              <span>Delete</span>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
