@@ -1,6 +1,6 @@
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 
-export const exportInvoicesToExcel = (invoices) => {
+export const exportInvoicesToExcel = async (invoices) => {
   // Transform invoices data for Excel
   const data = invoices.map(invoice => ({
     'Invoice Number': invoice.invoiceNumber,
@@ -22,17 +22,22 @@ export const exportInvoicesToExcel = (invoices) => {
     'Notes': invoice.notes || ''
   }));
 
-  // Create workbook and worksheet
-  const workbook = XLSX.utils.book_new();
-  const worksheet = XLSX.utils.json_to_sheet(data);
+  // Create workbook and worksheet using exceljs
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet('Invoices');
 
-  // Add worksheet to workbook
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Invoices');
+  // Add header row
+  worksheet.columns = Object.keys(data[0]).map(key => ({ header: key, key }));
 
-  // Generate Excel file
-  const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
-  const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-  
+  // Add data rows
+  data.forEach(row => {
+    worksheet.addRow(row);
+  });
+
+  // Generate Excel file as Blob
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+
   // Download file
   const url = window.URL.createObjectURL(blob);
   const link = document.createElement('a');
